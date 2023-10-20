@@ -32,8 +32,8 @@ let _src = "";
 
 const defaultOptions: IsURLOptions = {
   protocols: ["https"],
-  require_protocol: true,
-}
+  require_valid_protocol: true,
+};
 
 // Initializes the client by appending the SSO iframe to the document.
 export function init(src: string, options: IsURLOptions = {}) {
@@ -76,7 +76,10 @@ export async function getIdentity(user: string): Promise<AuthIdentity | null> {
 
 // Stores the identity of the given user into the iframe.
 // Fallbacks to the current application's local storage if communication with the iframe fails.
-export async function storeIdentity(user: string, identity: AuthIdentity): Promise<void> {
+export async function storeIdentity(
+  user: string,
+  identity: AuthIdentity
+): Promise<void> {
   try {
     await postMessage(await getIframe(), Action.STORE, { user, identity });
   } catch (e) {
@@ -105,7 +108,9 @@ async function getIframe() {
   }
 
   for (let i = 0; i < GET_IFRAME_RETRIES; i++) {
-    const element = document.getElementById(IFRAME_ID) as HTMLIFrameElement | null;
+    const element = document.getElementById(
+      IFRAME_ID
+    ) as HTMLIFrameElement | null;
 
     const contentWindow = element?.contentWindow;
 
@@ -123,7 +128,9 @@ async function getIframe() {
     return contentWindow;
   }
 
-  throw new Error("Could not get iframe because it is not ready or cannot be communicated with");
+  throw new Error(
+    "Could not get iframe because it is not ready or cannot be communicated with"
+  );
 }
 
 // Simulates a request-response communication with the iframe.
@@ -163,7 +170,10 @@ async function postMessage(
       ? Promise.race([
           request,
           new Promise<ServerMessage>((_, reject) =>
-            setTimeout(() => reject(new Error("Did not receive a response in time")), timeout)
+            setTimeout(
+              () => reject(new Error("Did not receive a response in time")),
+              timeout
+            )
           ),
         ])
       : request);
@@ -183,5 +193,8 @@ function wait(ms: number) {
 
 // Helper function to log a warning when the iframe cannot be communicated with.
 function logFallback(error: Error) {
-  console.warn("Could not get identity from iframe, falling back to localStorage. Error:", error.message);
+  console.warn(
+    "Could not get identity from iframe, falling back to localStorage. Error:",
+    error.message
+  );
 }

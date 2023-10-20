@@ -3,8 +3,10 @@ import ReactDOM from "react-dom/client";
 import * as SingleSignOn from "@dcl/single-sign-on-client";
 import App from "./App.tsx";
 
-// SingleSignOn.init("https://id.decentraland.org");
-SingleSignOn.init("http://localhost:3001");
+const ssoSrc = "https://localhost:3001/";
+const ssoOpt = { require_tld: false, protocols: undefined };
+
+SingleSignOn.init(ssoSrc, ssoOpt);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
