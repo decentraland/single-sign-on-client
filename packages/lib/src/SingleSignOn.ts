@@ -10,6 +10,7 @@ export async function init(
   options?: {
     useLocalDirectly?: boolean;
     isUrlOptions?: IsURLOptions;
+    timeout?: number;
   }
 ) {
   if (initState !== "not-initialized") {
@@ -61,7 +62,9 @@ export async function init(
 
     await Promise.race([
       promise,
-      new Promise((_resolve, reject) => setTimeout(() => reject(new Error("Initialization timeout")), 2000)),
+      new Promise((_resolve, reject) =>
+        setTimeout(() => reject(new Error("Initialization timeout")), options?.timeout ?? 2000)
+      ),
     ]);
 
     initState = "initialized";
