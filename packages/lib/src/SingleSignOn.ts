@@ -9,16 +9,35 @@ type InitArgs = {
   timeout?: number;
 };
 
-let initState: "not-initialized" | "initializing" | "initialized" | "initialized-local" = "not-initialized";
+enum InitState {
+  NOT_INITIALIZED,
+  INITIALIZING,
+  INITIALIZED,
+  INITIALIZED_LOCAL,
+}
 
+let initState = InitState.NOT_INITIALIZED;
+
+/**
+ * Initializes the SSO client.
+ * - Should only be called once.
+ * - If not being used locally, creates an iframe of the identity webapp.
+ * - The iframe should not be created by any other means rather than the init function.
+ *
+ * If SSO is initialized locally, instead of communicating with the iframe it will work with the implementing app's local storage.
+ * This is to prevent the application from blocking the user in case the iframe webapp cannot be loaded.
+ * @param args.src The url of the identity webapp.
+ * @param args.isUrlOptions Options for the url validation. By default it has to be an https url.
+ * @param args.timeout The timeout for the initialization. By default it is 2 seconds.
+ */
 export async function init({ src, isUrlOptions, timeout }: InitArgs = {}) {
-  if (initState !== "not-initialized") {
+  if (initState !== InitState.NOT_INITIALIZED) {
     console.log("SSO.init(): Cannot initialize more than once");
 
     return;
   }
 
-  initState = "initializing";
+  initState = InitState.INITIALIZING;
 
   try {
     if (!src) {
@@ -66,11 +85,11 @@ export async function init({ src, isUrlOptions, timeout }: InitArgs = {}) {
       new Promise((_resolve, reject) => setTimeout(() => reject(new Error("Initialization timeout")), timeout ?? 2000)),
     ]);
 
-    initState = "initialized";
+    initState = InitState.INITIALIZED;
 
     console.log("SSO.init(): Initialized");
   } catch (e) {
-    initState = "initialized-local";
+    initState = InitState.INITIALIZED_LOCAL;
 
     console.log("SSO.init(): Initialized Locally - " + (e as Error).message);
   }
