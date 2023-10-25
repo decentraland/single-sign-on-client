@@ -1,93 +1,85 @@
 import type { AuthIdentity } from "@dcl/crypto";
 
-// The possible typo of interactions with the iframe.
+export const SINGLE_SIGN_ON_TARGET = "single-sign-on";
+
 export enum Action {
-  // Get the identity of a user.
-  GET = "get",
-  // Store the identity of a user.
-  STORE = "store",
-  // Clear the identity of a user.
-  CLEAR = "clear",
-  // Check that the iframe can be communicated with.
+  GET_IDENTITY = "get-identity",
+  SET_IDENTITY = "set-identity",
+  GET_CONNECTION_DATA = "get-connection-data",
+  SET_CONNECTION_DATA = "set-connection-data",
   PING = "ping",
 }
 
-// Value used to identify messages intended for the iframe.
-export const SINGLE_SIGN_ON_TARGET = "single-sign-on";
+export type ConnectionData = {
+  address: string;
+  provider: string;
+};
 
-// The schema of messages sent by the client.
 export type ClientMessage = {
-  target: string;
+  target: typeof SINGLE_SIGN_ON_TARGET;
   id: number;
-  action?: Action;
-  user?: string;
-  identity?: AuthIdentity | null;
+  action: Action;
+  payload?: ConnectionData | AuthIdentity;
 };
 
-// The schema of messages sent by the iframe.
 export type ServerMessage = {
-  target: string;
+  target: typeof SINGLE_SIGN_ON_TARGET;
   id: number;
-  identity?: AuthIdentity | null;
-  error?: string;
+  action: Action;
+  payload?: ConnectionData | AuthIdentity;
 };
 
-// Helper function to create a message without the need of providing a target.
-export function createMessage(message: Omit<ClientMessage & ServerMessage, "target">) {
-  return {
-    target: SINGLE_SIGN_ON_TARGET,
-    ...message,
-  };
-}
+export namespace LocalStorageUtils {
+  const IDENTITY_KEY = "single-sign-on-v2-identity";
+  const CONNECTION_DATA_KEY = "single-sign-on-v2-connection-data";
 
-// Get the identity of the user from local storage.
-// Does some extra operations on the obtained value to make it more reliable.
-export function localStorageGetIdentity(user: string) {
-  const item = localStorage.getItem(getKey(user));
-  if (!item) {
-    return null;
+  export function getIdentity(address: string): AuthIdentity | null {
+    const lsIdentity = localStorage.getItem(getIdentityKey(address));
+
+    if (!lsIdentity) {
+      return null;
+    }
+
+    const identity: AuthIdentity = JSON.parse(lsIdentity);
+
+    identity.expiration = new Date(identity.expiration);
+
+    if (identity.expiration.getTime() <= Date.now()) {
+      return null;
+    }
+
+    return identity;
   }
 
-  let identity: AuthIdentity;
-  try {
-    // If the item is not a valid JSON, we remove it.
-    identity = JSON.parse(item);
-  } catch (e) {
-    localStorageClearIdentity(user);
-    return null;
+  export function setIdentity(address: string, identity: AuthIdentity | null): void {
+    const key = getIdentityKey(address);
+
+    if (!identity) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, JSON.stringify(identity));
+    }
   }
 
-  // The expiration is parsed as a string, so we need to convert it to a Date.
-  identity.expiration = new Date(identity.expiration);
+  export function getConnectionData(): ConnectionData | null {
+    const connectionData = localStorage.getItem(CONNECTION_DATA_KEY);
 
-  // If expiration is in the past, we remove the identity.
-  if (identity.expiration.getTime() <= Date.now()) {
-    localStorageClearIdentity(user);
-    return null
+    if (!connectionData) {
+      return null;
+    }
+
+    return JSON.parse(connectionData) as ConnectionData;
   }
 
-  // Everything is fine, we return the identity.
-  return identity;
-}
-
-// Stores the identity of the user in local storage (if is not expired).
-export function localStorageStoreIdentity(user: string, identity: AuthIdentity) {
-  const expiration = new Date(identity.expiration)
-  if (expiration.getTime() > Date.now()) {
-    localStorage.setItem(getKey(user), JSON.stringify(identity));
-  }
-}
-
-// Clears the identity of the user from local storage.
-export function localStorageClearIdentity(user: string) {
-  localStorage.removeItem(getKey(user));
-}
-
-// Gets the key where the identity of the user is stored in local storage.
-function getKey(user: string) {
-  if (!/^0x[a-fA-F0-9]{40}$/.test(user)) {
-    throw new Error(`User must be a valid ethereum address`);
+  export function setConnectionData(connectionData: ConnectionData | null): void {
+    if (!connectionData) {
+      localStorage.removeItem(CONNECTION_DATA_KEY);
+    } else {
+      localStorage.setItem(CONNECTION_DATA_KEY, JSON.stringify(connectionData));
+    }
   }
 
-  return `single-sign-on-${user.toLowerCase()}`;
+  function getIdentityKey(address: string) {
+    return `${IDENTITY_KEY}-${address}`;
+  }
 }
