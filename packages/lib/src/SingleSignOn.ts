@@ -3,28 +3,29 @@ import { Action, ServerMessage, SINGLE_SIGN_ON_TARGET } from "./SingleSignOn.sha
 
 const IFRAME_ID = SINGLE_SIGN_ON_TARGET;
 
+type InitArgs = {
+  src?: string;
+  isUrlOptions?: IsURLOptions;
+  timeout?: number;
+};
+
 let initState: "not-initialized" | "initializing" | "initialized" | "initialized-local" = "not-initialized";
 
-export async function init(
-  src: string,
-  options?: {
-    useLocalDirectly?: boolean;
-    isUrlOptions?: IsURLOptions;
-    timeout?: number;
-  }
-) {
+export async function init({ src, isUrlOptions, timeout }: InitArgs = {}) {
   if (initState !== "not-initialized") {
+    console.log("SSO.init(): Cannot initialize more than once");
+
     return;
   }
 
   initState = "initializing";
 
   try {
-    if (options?.useLocalDirectly) {
-      throw new Error("Using local directly");
+    if (!src) {
+      throw new Error("Using local by configuration");
     }
 
-    if (!isURL(src, { protocols: ["https"], require_valid_protocol: true, ...(options?.isUrlOptions ?? {}) })) {
+    if (!isURL(src, { protocols: ["https"], require_valid_protocol: true, ...(isUrlOptions ?? {}) })) {
       throw new Error(`Invalid url: ${src}`);
     }
 
@@ -62,13 +63,15 @@ export async function init(
 
     await Promise.race([
       promise,
-      new Promise((_resolve, reject) =>
-        setTimeout(() => reject(new Error("Initialization timeout")), options?.timeout ?? 2000)
-      ),
+      new Promise((_resolve, reject) => setTimeout(() => reject(new Error("Initialization timeout")), timeout ?? 2000)),
     ]);
 
     initState = "initialized";
+
+    console.log("SSO.init(): Initialized");
   } catch (e) {
     initState = "initialized-local";
+
+    console.log("SSO.init(): Initialized Locally - " + (e as Error).message);
   }
 }
