@@ -7,7 +7,7 @@ export enum Action {
   SET_IDENTITY = "set-identity",
   GET_CONNECTION_DATA = "get-connection-data",
   SET_CONNECTION_DATA = "set-connection-data",
-  PING = "ping",
+  INIT = "init",
 }
 
 export type ConnectionData = {
@@ -19,14 +19,15 @@ export type ClientMessage = {
   target: typeof SINGLE_SIGN_ON_TARGET;
   id: number;
   action: Action;
-  payload?: ConnectionData | AuthIdentity;
+  payload?: ConnectionData | { address: string; identity: AuthIdentity };
 };
 
 export type ServerMessage = {
   target: typeof SINGLE_SIGN_ON_TARGET;
   id: number;
   action: Action;
-  payload?: ConnectionData | AuthIdentity;
+  ok: boolean;
+  payload?: ConnectionData | { address: string; identity: AuthIdentity } | string;
 };
 
 export namespace LocalStorageUtils {
