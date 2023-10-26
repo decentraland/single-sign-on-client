@@ -4,6 +4,7 @@ import {
   Action,
   ClientMessage,
   ConnectionData,
+  IdentityPayload,
   LocalStorageUtils,
   ServerMessage,
   SINGLE_SIGN_ON_TARGET,
@@ -119,7 +120,7 @@ export async function setIdentity(address: string, identity: AuthIdentity | null
 }
 
 export async function getIdentity(address: string): Promise<AuthIdentity | null> {
-  return ((await handle(Action.GET_IDENTITY, address)) as { address: string; identity: AuthIdentity | null }).identity;
+  return (await handle(Action.GET_IDENTITY, address)) as AuthIdentity | null;
 }
 
 async function handle(action: Action, payload?: ClientMessage["payload"]) {
@@ -133,6 +134,11 @@ async function handle(action: Action, payload?: ClientMessage["payload"]) {
         return LocalStorageUtils.setConnectionData(payload as ConnectionData | null);
       case Action.GET_CONNECTION_DATA:
         return LocalStorageUtils.getConnectionData();
+      case Action.SET_IDENTITY:
+        const { address, identity } = payload as IdentityPayload;
+        return LocalStorageUtils.setIdentity(address, identity);
+      case Action.GET_IDENTITY:
+        return LocalStorageUtils.getIdentity(payload as string);
       default:
         throw new Error("Unsupported action");
     }

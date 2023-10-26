@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@dcl/crypto": "^3.4.3",
+    "@dcl/schemas": "^9.8.0",
     "validator": "^13.11.0"
   }
 }

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@dcl/crypto": "^3.4.3",
+    "@dcl/schemas": "^9.8.0",
     "@dcl/single-sign-on-client": "^2.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

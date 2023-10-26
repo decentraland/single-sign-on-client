@@ -1,4 +1,5 @@
 import type { AuthIdentity } from "@dcl/crypto";
+import { ProviderType } from "@dcl/schemas";
 
 export const SINGLE_SIGN_ON_TARGET = "single-sign-on";
 
@@ -12,14 +13,19 @@ export enum Action {
 
 export type ConnectionData = {
   address: string;
-  provider: string;
+  provider: ProviderType;
+};
+
+export type IdentityPayload = {
+  address: string;
+  identity: AuthIdentity | null;
 };
 
 export type ClientMessage = {
   target: typeof SINGLE_SIGN_ON_TARGET;
   id: number;
   action: Action;
-  payload?: ConnectionData | { address: string; identity: AuthIdentity | null } | string | null;
+  payload?: ConnectionData | IdentityPayload | string | null;
 };
 
 export type ServerMessage = {
@@ -27,7 +33,7 @@ export type ServerMessage = {
   id: number;
   action: Action;
   ok: boolean;
-  payload?: ConnectionData | { address: string; identity: AuthIdentity | null } | string;
+  payload?: ConnectionData | AuthIdentity | string;
 };
 
 export namespace LocalStorageUtils {
