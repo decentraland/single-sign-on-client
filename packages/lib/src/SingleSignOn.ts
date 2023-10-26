@@ -1,4 +1,5 @@
 import isURL, { IsURLOptions } from "validator/lib/isURL";
+import { AuthIdentity } from "@dcl/crypto";
 import {
   Action,
   ClientMessage,
@@ -111,6 +112,14 @@ export async function setConnectionData(data: ConnectionData | null): Promise<vo
 
 export async function getConnectionData(): Promise<ConnectionData | null> {
   return (await handle(Action.GET_CONNECTION_DATA)) as ConnectionData | null;
+}
+
+export async function setIdentity(address: string, identity: AuthIdentity | null): Promise<void> {
+  return (await handle(Action.SET_IDENTITY, { address, identity })) as void;
+}
+
+export async function getIdentity(address: string): Promise<AuthIdentity | null> {
+  return ((await handle(Action.GET_IDENTITY, address)) as { address: string; identity: AuthIdentity | null }).identity;
 }
 
 async function handle(action: Action, payload?: ClientMessage["payload"]) {

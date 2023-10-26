@@ -19,7 +19,7 @@ export type ClientMessage = {
   target: typeof SINGLE_SIGN_ON_TARGET;
   id: number;
   action: Action;
-  payload?: ConnectionData | { address: string; identity: AuthIdentity } | null;
+  payload?: ConnectionData | { address: string; identity: AuthIdentity | null } | string | null;
 };
 
 export type ServerMessage = {
@@ -27,7 +27,7 @@ export type ServerMessage = {
   id: number;
   action: Action;
   ok: boolean;
-  payload?: ConnectionData | { address: string; identity: AuthIdentity } | string;
+  payload?: ConnectionData | { address: string; identity: AuthIdentity | null } | string;
 };
 
 export namespace LocalStorageUtils {
