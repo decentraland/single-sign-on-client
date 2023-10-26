@@ -1,5 +1,12 @@
 import isURL, { IsURLOptions } from "validator/lib/isURL";
-import { Action, ServerMessage, SINGLE_SIGN_ON_TARGET } from "./SingleSignOn.shared";
+import {
+  Action,
+  ClientMessage,
+  ConnectionData,
+  LocalStorageUtils,
+  ServerMessage,
+  SINGLE_SIGN_ON_TARGET,
+} from "./SingleSignOn.shared";
 
 const IFRAME_ID = SINGLE_SIGN_ON_TARGET;
 
@@ -13,10 +20,12 @@ enum InitState {
   NOT_INITIALIZED,
   INITIALIZING,
   INITIALIZED,
-  INITIALIZED_LOCAL,
 }
 
 let initState = InitState.NOT_INITIALIZED;
+let isLocal = false;
+let src: string | null = null;
+let idCounter = 1;
 
 /**
  * Initializes the SSO client.
@@ -30,9 +39,9 @@ let initState = InitState.NOT_INITIALIZED;
  * @param args.isUrlOptions Options for the url validation. By default it has to be an https url.
  * @param args.timeout The timeout for the initialization. By default it is 2 seconds.
  */
-export async function init({ src, isUrlOptions, timeout }: InitArgs = {}) {
+export async function init({ src: _src, isUrlOptions, timeout }: InitArgs = {}): Promise<void> {
   if (initState !== InitState.NOT_INITIALIZED) {
-    console.log("SSO.init(): Cannot initialize more than once");
+    console.log("SSO cannot be initialized more than once");
 
     return;
   }
@@ -40,12 +49,12 @@ export async function init({ src, isUrlOptions, timeout }: InitArgs = {}) {
   initState = InitState.INITIALIZING;
 
   try {
-    if (!src) {
+    if (!_src) {
       throw new Error("Using local by configuration");
     }
 
-    if (!isURL(src, { protocols: ["https"], require_valid_protocol: true, ...(isUrlOptions ?? {}) })) {
-      throw new Error(`Invalid url: ${src}`);
+    if (!isURL(_src, { protocols: ["https"], require_valid_protocol: true, ...(isUrlOptions ?? {}) })) {
+      throw new Error(`Invalid url: ${_src}`);
     }
 
     if (document.getElementById(IFRAME_ID)) {
@@ -72,7 +81,7 @@ export async function init({ src, isUrlOptions, timeout }: InitArgs = {}) {
 
     const iframe = document.createElement("iframe");
     iframe.id = IFRAME_ID;
-    iframe.src = src;
+    iframe.src = _src;
     iframe.style.width = "0";
     iframe.style.height = "0";
     iframe.style.border = "none";
@@ -85,12 +94,85 @@ export async function init({ src, isUrlOptions, timeout }: InitArgs = {}) {
       new Promise((_resolve, reject) => setTimeout(() => reject(new Error("Initialization timeout")), timeout ?? 2000)),
     ]);
 
-    initState = InitState.INITIALIZED;
-
-    console.log("SSO.init(): Initialized");
+    console.log("SSO initialized");
   } catch (e) {
-    initState = InitState.INITIALIZED_LOCAL;
+    isLocal = true;
 
-    console.log("SSO.init(): Initialized Locally - " + (e as Error).message);
+    console.log("SSO initialized locally, reason: " + (e as Error).message);
   }
+
+  initState = InitState.INITIALIZED;
+  src = _src ?? null;
+}
+
+export async function setConnectionData(data: ConnectionData | null): Promise<void> {
+  return (await handle(Action.SET_CONNECTION_DATA, data)) as void;
+}
+
+export async function getConnectionData(): Promise<ConnectionData | null> {
+  return (await handle(Action.GET_CONNECTION_DATA)) as ConnectionData | null;
+}
+
+async function handle(action: Action, payload?: ClientMessage["payload"]) {
+  if (initState !== InitState.INITIALIZED) {
+    throw new Error("SSO is not initialized");
+  }
+
+  if (isLocal) {
+    switch (action) {
+      case Action.SET_CONNECTION_DATA:
+        return LocalStorageUtils.setConnectionData(payload as ConnectionData | null);
+      case Action.GET_CONNECTION_DATA:
+        return LocalStorageUtils.getConnectionData();
+      default:
+        throw new Error("Unsupported action");
+    }
+  } else {
+    const iframeWindow = getIframeWindow();
+    const id = idCounter++;
+
+    const promise = new Promise<ServerMessage["payload"]>((resolve, reject) => {
+      const handler = ({ data }: MessageEvent<ServerMessage>) => {
+        if (data.target !== SINGLE_SIGN_ON_TARGET || data.id !== id || data.action !== action) {
+          return;
+        }
+
+        window.removeEventListener("message", handler);
+
+        !data.ok ? reject(data.payload as string) : resolve(data.payload);
+      };
+
+      window.addEventListener("message", handler);
+    });
+
+    iframeWindow.postMessage({ target: SINGLE_SIGN_ON_TARGET, id, action, payload } as ClientMessage, "*");
+
+    return promise;
+  }
+}
+
+function getIframeWindow(): Window {
+  const element = document.getElementById(IFRAME_ID);
+
+  if (!element) {
+    throw new Error("Unable to obtain the SSO iframe element");
+  }
+
+  if (element.tagName !== "IFRAME") {
+    throw new Error("The SSO element is not an iframe");
+  }
+
+  const iframe = element as HTMLIFrameElement;
+
+  if (new URL(iframe.src).origin !== new URL(src!).origin) {
+    throw new Error("The SSO iframe src has been modified");
+  }
+
+  const iframeWindow = iframe.contentWindow;
+
+  if (!iframeWindow) {
+    throw new Error("Unable to obtain the SSO iframe window");
+  }
+
+  return iframeWindow;
 }

@@ -19,7 +19,7 @@ export type ClientMessage = {
   target: typeof SINGLE_SIGN_ON_TARGET;
   id: number;
   action: Action;
-  payload?: ConnectionData | { address: string; identity: AuthIdentity };
+  payload?: ConnectionData | { address: string; identity: AuthIdentity } | null;
 };
 
 export type ServerMessage = {
