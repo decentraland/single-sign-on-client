@@ -160,7 +160,7 @@ async function handle(action: Action, payload?: ClientMessage["payload"]) {
       window.addEventListener("message", handler);
     });
 
-    iframeWindow.postMessage({ target: SINGLE_SIGN_ON_TARGET, id, action, payload } as ClientMessage, "*");
+    iframeWindow.postMessage({ target: SINGLE_SIGN_ON_TARGET, id, action, payload } as ClientMessage, src!);
 
     return promise;
   }
