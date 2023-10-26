@@ -1,84 +1,60 @@
-import React, { useState } from "react";
-import * as SingleSignOn from "@dcl/single-sign-on-client";
-import { AuthIdentity, AuthLinkType } from "@dcl/crypto";
+import { AuthIdentity } from "@dcl/crypto";
+import { AuthLinkType, ProviderType } from "@dcl/schemas";
+import * as sso from "@dcl/single-sign-on-client";
 
-function getSampleAuthIdentity(): AuthIdentity {
-  return {
-    authChain: [{ payload: "payload", type: AuthLinkType.SIGNER, signature: "signature" }],
-    ephemeralIdentity: {
-      address: "address",
-      privateKey: "privateKey",
-      publicKey: "publicKey",
+const address = "0x24e5F44999c151f08609F8e27b2238c773C4D020";
+const connectionData: sso.ConnectionData = { address, provider: ProviderType.INJECTED };
+const identity: AuthIdentity = {
+  ephemeralIdentity: {
+    address: "0xF8C8E57A279c1ACAB4d4d7828365fef634FcA15e",
+    publicKey:
+      "0x0423553e669ddf2153b2a12147cba9f9a5d07a89ec161827779ce4567a81707cef1056097e92d80845cb1d712504b1daaaa17a8cb51f001d0ef0683e4e6b2930ec",
+    privateKey: "0xWhyDoYouCare?",
+  },
+  expiration: new Date("2023-11-26T02:38:41.714Z"),
+  authChain: [
+    { type: AuthLinkType.SIGNER, payload: "0x24e5f44999c151f08609f8e27b2238c773c4d020", signature: "" },
+    {
+      type: AuthLinkType.ECDSA_PERSONAL_EPHEMERAL,
+      payload:
+        "Decentraland Login\nEphemeral address: 0xF8C8E57A279c1ACAB4d4d7828365fef634FcA15e\nExpiration: 2023-11-26T02:38:41.714Z",
+      signature:
+        "0xb83500e07d944387a56cd943222313cac18457d60fca2832280c0e0a9faa5a0e1714a5fd92aa3c38ca4076bc609f5ae81aaf1143af1519995027c3ac4978ce9d1b",
     },
-    expiration: new Date(100),
-  };
-}
+  ],
+};
 
 function App() {
-  const [user, setUser] = useState("");
+  const onSetConnectionData = () => {
+    sso.setConnectionData(connectionData);
+  };
+
+  const onGetConnectionData = async () => {
+    console.log("SSO Connection Data", await sso.getConnectionData());
+  };
+
+  const onSetIdentity = () => {
+    sso.setIdentity(address, identity);
+  };
+
+  const onGetIdentity = async () => {
+    console.log("SSO Identity", await sso.getIdentity(address));
+  };
 
   return (
-    <>
-      <header>
-        <h1>Single Sign On - Demo</h1>
-      </header>
-      <main>
-        <div style={{ display: "flex", flexDirection: "column", gap: ".5rem" }}>
-          <Input label="key" onChange={(e) => setUser(e.target.value)} />
-        </div>
-        <div style={{ marginTop: ".5rem", display: "flex", gap: ".5rem" }}>
-          <button
-            onClick={async () => {
-              const identity = getSampleAuthIdentity();
-
-              identity.ephemeralIdentity.address = user;
-
-              try {
-                await SingleSignOn.storeIdentity(user, identity);
-                console.log("set!");
-              } catch (e) {
-                console.log((e as Error).message);
-              }
-            }}
-          >
-            STORE
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                const val = await SingleSignOn.getIdentity(user);
-                console.log("get!", val);
-              } catch (e) {
-                console.log((e as Error).message);
-              }
-            }}
-          >
-            GET
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                await SingleSignOn.clearIdentity(user);
-                console.log("clear!");
-              } catch (e) {
-                console.log((e as Error).message);
-              }
-            }}
-          >
-            CLEAR
-          </button>
-        </div>
-      </main>
-    </>
-  );
-}
-
-function Input({ label, onChange }: { label: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
-  return (
-    <label style={{ display: "flex" }}>
-      <div style={{ width: 40 }}>{label}</div>
-      <input type="text" onChange={onChange} />
-    </label>
+    <main>
+      <h1>SSO</h1>
+      <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+        <label style={{ width: 150 }}>Connection Data</label>
+        <button onClick={onSetConnectionData}>Set</button>
+        <button onClick={onGetConnectionData}>Get</button>
+      </div>
+      <div style={{ display: "flex", gap: "1rem" }}>
+        <label style={{ width: 150 }}>Identity</label>
+        <button onClick={onSetIdentity}>Set</button>
+        <button onClick={onGetIdentity}>Get</button>
+      </div>
+    </main>
   );
 }
 
