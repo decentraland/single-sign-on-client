@@ -33,7 +33,7 @@ export type ServerMessage = {
   id: number;
   action: Action;
   ok: boolean;
-  payload?: ConnectionData | AuthIdentity | string;
+  payload?: ConnectionData | AuthIdentity | string | null;
 };
 
 export namespace LocalStorageUtils {
