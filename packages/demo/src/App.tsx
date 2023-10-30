@@ -1,9 +1,9 @@
 import { AuthIdentity } from "@dcl/crypto";
 import { AuthLinkType, ProviderType } from "@dcl/schemas";
-import * as sso from "@dcl/single-sign-on-client";
+import { SingleSignOn, ConnectionData } from "@dcl/single-sign-on-client";
 
 const address = "0x24e5F44999c151f08609F8e27b2238c773C4D020";
-const connectionData: sso.ConnectionData = { address, provider: ProviderType.INJECTED };
+const connectionData: ConnectionData = { address, provider: ProviderType.INJECTED };
 const identity: AuthIdentity = {
   ephemeralIdentity: {
     address: "0xF8C8E57A279c1ACAB4d4d7828365fef634FcA15e",
@@ -26,19 +26,19 @@ const identity: AuthIdentity = {
 
 function App() {
   const onSetConnectionData = () => {
-    sso.setConnectionData(connectionData);
+    SingleSignOn.getInstance().setConnectionData(connectionData);
   };
 
   const onGetConnectionData = async () => {
-    console.log("SSO Connection Data", await sso.getConnectionData());
+    console.log("SSO Connection Data", await SingleSignOn.getInstance().getConnectionData());
   };
 
   const onSetIdentity = () => {
-    sso.setIdentity(address, identity);
+    SingleSignOn.getInstance().setIdentity(address, identity);
   };
 
   const onGetIdentity = async () => {
-    console.log("SSO Identity", await sso.getIdentity(address));
+    console.log("SSO Identity", await SingleSignOn.getInstance().getIdentity(address));
   };
 
   return (

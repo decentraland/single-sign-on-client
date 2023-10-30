@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import * as SSO from "@dcl/single-sign-on-client";
+import { SingleSignOn } from "@dcl/single-sign-on-client";
 import App from "./App.tsx";
 
 async function main() {
@@ -8,7 +8,7 @@ async function main() {
   // await SSO.init();
 
   // Init Localhost
-  await SSO.init({
+  await SingleSignOn.getInstance().init({
     src: "http://localhost:3001",
     isUrlOptions: {
       protocols: ["http"],
