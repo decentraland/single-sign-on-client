@@ -1,5 +1,7 @@
+import Ajv, { JSONSchemaType } from "ajv";
+import addFormats from "ajv-formats";
 import type { AuthIdentity } from "@dcl/crypto";
-import { ProviderType } from "@dcl/schemas";
+import { AuthChain, ProviderType } from "@dcl/schemas";
 
 export const SINGLE_SIGN_ON_TARGET = "single-sign-on";
 
@@ -37,17 +39,25 @@ export type ServerMessage = {
 };
 
 export namespace LocalStorageUtils {
-  const IDENTITY_KEY = "single-sign-on-v2-identity";
-  const CONNECTION_DATA_KEY = "single-sign-on-v2-connection-data";
+  export const IDENTITY_KEY = "single-sign-on-v2-identity";
+  export const CONNECTION_DATA_KEY = "single-sign-on-v2-connection-data";
 
   export function getIdentity(address: string): AuthIdentity | null {
-    const lsIdentity = localStorage.getItem(getIdentityKey(address));
+    const identityStr = localStorage.getItem(getIdentityKey(address));
 
-    if (!lsIdentity) {
+    if (!identityStr) {
       return null;
     }
 
-    const identity: AuthIdentity = JSON.parse(lsIdentity);
+    const identityWithStringExpiration: Omit<AuthIdentity, "expiration"> & { expiration: string } =
+      JSON.parse(identityStr);
+
+    Validations.validateAuthIdentity(identityWithStringExpiration);
+
+    const identity: AuthIdentity = {
+      ...identityWithStringExpiration,
+      expiration: new Date(identityWithStringExpiration.expiration),
+    };
 
     identity.expiration = new Date(identity.expiration);
 
@@ -64,29 +74,100 @@ export namespace LocalStorageUtils {
     if (!identity) {
       localStorage.removeItem(key);
     } else {
+      Validations.validateAuthIdentity(identity);
+
       localStorage.setItem(key, JSON.stringify(identity));
     }
   }
 
   export function getConnectionData(): ConnectionData | null {
-    const connectionData = localStorage.getItem(CONNECTION_DATA_KEY);
+    const connectionDataStr = localStorage.getItem(CONNECTION_DATA_KEY);
 
-    if (!connectionData) {
+    if (!connectionDataStr) {
       return null;
     }
 
-    return JSON.parse(connectionData) as ConnectionData;
+    const connectionData = JSON.parse(connectionDataStr) as ConnectionData;
+
+    Validations.validateConnectionData(connectionData);
+
+    return connectionData as ConnectionData;
   }
 
   export function setConnectionData(connectionData: ConnectionData | null): void {
     if (!connectionData) {
       localStorage.removeItem(CONNECTION_DATA_KEY);
     } else {
+      Validations.validateConnectionData(connectionData);
+
       localStorage.setItem(CONNECTION_DATA_KEY, JSON.stringify(connectionData));
     }
   }
 
   function getIdentityKey(address: string) {
     return `${IDENTITY_KEY}-${address}`;
+  }
+}
+
+namespace Validations {
+  export type AuthIdentityWithStringExpiration = Omit<AuthIdentity, "expiration"> & { expiration: string };
+
+  const ajv = new Ajv();
+  addFormats(ajv);
+
+  const connectionDataSchema: JSONSchemaType<ConnectionData> = {
+    type: "object",
+    properties: {
+      provider: ProviderType.schema,
+      address: {
+        type: "string",
+      },
+    },
+    required: ["address", "provider"],
+    additionalProperties: false,
+  };
+
+  const authIdentitySchema: JSONSchemaType<AuthIdentityWithStringExpiration> = {
+    type: "object",
+    properties: {
+      authChain: AuthChain.schema,
+      expiration: {
+        type: "string",
+        format: "date-time",
+      },
+      ephemeralIdentity: {
+        type: "object",
+        properties: {
+          address: {
+            type: "string",
+          },
+          privateKey: {
+            type: "string",
+          },
+          publicKey: {
+            type: "string",
+          },
+        },
+        required: ["address", "privateKey", "publicKey"],
+        additionalProperties: false,
+      },
+    },
+    required: ["ephemeralIdentity", "authChain", "expiration"],
+    additionalProperties: false,
+  };
+
+  const _validateConnectionData = ajv.compile(connectionDataSchema);
+  const _validateAuthIdentity = ajv.compile(authIdentitySchema);
+
+  export function validateConnectionData(connectionData: any) {
+    if (!_validateConnectionData(connectionData)) {
+      throw new Error(`Invalid connection data: ${JSON.stringify(_validateConnectionData.errors)}`);
+    }
+  }
+
+  export function validateAuthIdentity(authIdentity: any) {
+    if (!_validateAuthIdentity(authIdentity)) {
+      throw new Error(`Invalid auth identity: ${JSON.stringify(_validateAuthIdentity.errors)}`);
+    }
   }
 }
