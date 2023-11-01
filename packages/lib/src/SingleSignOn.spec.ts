@@ -1,5 +1,6 @@
+import { ProviderType } from "@dcl/schemas";
 import { SingleSignOn } from "./SingleSignOn";
-import { SINGLE_SIGN_ON_TARGET } from "./SingleSignOn.shared";
+import { Action, ConnectionData, LocalStorageUtils, SINGLE_SIGN_ON_TARGET } from "./SingleSignOn.shared";
 
 let ogDocument: typeof document;
 let mockGetElementById: jest.Mock;
@@ -118,9 +119,9 @@ describe("when initializing the client", () => {
 
         describe("when the init message is not received before the determined timeout time", () => {
           beforeEach(() => {
-            jest.spyOn(sso as any, "waitForInitMessage").mockImplementationOnce(() => {
-              return new Promise((resolve) => setTimeout(() => resolve({}), timeout + 100));
-            });
+            jest
+              .spyOn(sso as any, "waitForInitMessage")
+              .mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve({}), timeout + 100)));
           });
 
           it("should log that the client was initialized locally because the initialization timed out", async () => {
@@ -132,9 +133,9 @@ describe("when initializing the client", () => {
 
         describe("when the init message is received before the determined timeout time", () => {
           beforeEach(() => {
-            jest.spyOn(sso as any, "waitForInitMessage").mockImplementationOnce(() => {
-              return new Promise((resolve) => setTimeout(() => resolve({}), timeout - 50));
-            });
+            jest
+              .spyOn(sso as any, "waitForInitMessage")
+              .mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve({}), timeout - 50)));
           });
 
           it("should log that the client was initialized", async () => {
@@ -142,6 +143,144 @@ describe("when initializing the client", () => {
 
             expect(console.log).toHaveBeenCalledWith("SSO initialized");
           });
+        });
+      });
+    });
+  });
+});
+
+describe("when setting the connection data", () => {
+  describe("when the client is not initialized", () => {
+    it("should throw an error saying that the client is not initialized", async () => {
+      await expect(sso.setConnectionData(null)).rejects.toThrow("SSO is not initialized");
+    });
+  });
+
+  describe("when the client is initialized locally", () => {
+    beforeEach(() => {
+      sso.init();
+    });
+
+    it("should call the local storage utils set connection data function with the provided connection data", () => {
+      const setConnectionDataSpy = jest.spyOn(LocalStorageUtils, "setConnectionData");
+      setConnectionDataSpy.mockImplementation(() => {});
+
+      const connectionData: ConnectionData | null = null;
+
+      sso.setConnectionData(connectionData);
+      expect(setConnectionDataSpy).toHaveBeenCalledWith(connectionData);
+
+      sso.setConnectionData({ address: "0x123", provider: ProviderType.INJECTED });
+      expect(setConnectionDataSpy).toHaveBeenCalledWith(connectionData);
+    });
+  });
+
+  describe("when the client is initialized", () => {
+    const src = "https://someurl.com";
+
+    beforeEach(async () => {
+      mockGetElementById.mockReturnValueOnce(null);
+      mockCreateElement.mockReturnValueOnce({ style: {} });
+      jest.spyOn(sso as any, "waitForInitMessage").mockResolvedValueOnce(undefined);
+      await sso.init({ src, timeout: 0 });
+    });
+
+    describe("when the iframe element cannot be found", () => {
+      beforeEach(() => {
+        mockGetElementById.mockReturnValueOnce(null);
+      });
+
+      it("should throw an error saying that the element cannot be found", async () => {
+        await expect(sso.setConnectionData(null)).rejects.toThrow("Unable to obtain the SSO iframe element");
+      });
+    });
+
+    describe("when the element is not an iframe", () => {
+      beforeEach(() => {
+        mockGetElementById.mockReturnValueOnce({ tagName: "FOO" });
+      });
+
+      it("should throw an error saying that the element is not an iframe", async () => {
+        await expect(sso.setConnectionData(null)).rejects.toThrow("The SSO element is not an iframe");
+      });
+    });
+
+    describe("when the iframe src is different to the initialized one", () => {
+      beforeEach(() => {
+        mockGetElementById.mockReturnValueOnce({ tagName: "IFRAME", src: "https://someotherurl.com" });
+      });
+
+      it("should throw an error saying that the iframe src is different to the initialized one", async () => {
+        await expect(sso.setConnectionData(null)).rejects.toThrow("The SSO iframe src has been modified");
+      });
+    });
+
+    describe("when the iframe does not have a content window", () => {
+      beforeEach(() => {
+        mockGetElementById.mockReturnValueOnce({ tagName: "IFRAME", src, contentWindow: undefined });
+      });
+
+      it("should throw an error saying that the iframe window could not be obtained", async () => {
+        await expect(sso.setConnectionData(null)).rejects.toThrow("Unable to obtain the SSO iframe window");
+      });
+    });
+
+    describe("when validations pass", () => {
+      let connectionData: ConnectionData | null;
+      let mockPostMessage: jest.Mock;
+
+      beforeEach(() => {
+        mockPostMessage = jest.fn();
+
+        mockGetElementById.mockReturnValue({
+          tagName: "IFRAME",
+          src,
+          contentWindow: { postMessage: mockPostMessage },
+        });
+
+        jest.spyOn(sso as any, "waitForActionResponse").mockResolvedValue(undefined);
+      });
+
+      describe("when the connection data is null", () => {
+        beforeEach(() => {
+          connectionData = null;
+        });
+
+        it("should call the iframe window post message function with the set connection data client message", async () => {
+          await sso.setConnectionData(connectionData);
+
+          expect(mockPostMessage).toHaveBeenCalledWith(
+            {
+              action: Action.SET_CONNECTION_DATA,
+              id: 1,
+              payload: null,
+              target: SINGLE_SIGN_ON_TARGET,
+            },
+            src
+          );
+        });
+      });
+
+      describe("when the connection data is not null", () => {
+        beforeEach(() => {
+          connectionData = {
+            address: "0x123",
+            provider: ProviderType.INJECTED,
+          };
+        });
+
+        it("should call the iframe window post message function with the set connection data client message", async () => {
+          await sso.setConnectionData(connectionData);
+
+          expect(mockPostMessage).toHaveBeenCalledWith(
+            {
+              action: Action.SET_CONNECTION_DATA,
+              id: 1,
+              payload: connectionData,
+              target: SINGLE_SIGN_ON_TARGET,
+            },
+            src
+          );
         });
       });
     });

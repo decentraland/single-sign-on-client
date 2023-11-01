@@ -141,23 +141,9 @@ export class SingleSignOn {
       const iframeWindow = this.getIframeWindow();
       const id = this.idCounter++;
 
-      const promise = new Promise<ServerMessage["payload"]>((resolve, reject) => {
-        const handler = ({ data }: MessageEvent<ServerMessage>) => {
-          if (data.target !== SINGLE_SIGN_ON_TARGET || data.id !== id || data.action !== action) {
-            return;
-          }
-
-          window.removeEventListener("message", handler);
-
-          !data.ok ? reject(data.payload as string) : resolve(data.payload);
-        };
-
-        window.addEventListener("message", handler);
-      });
-
       iframeWindow.postMessage({ target: SINGLE_SIGN_ON_TARGET, id, action, payload } as ClientMessage, this.src!);
 
-      return promise;
+      return this.waitForActionResponse(id, action);
     }
   }
 
@@ -201,6 +187,22 @@ export class SingleSignOn {
         }
 
         resolve();
+      };
+
+      window.addEventListener("message", handler);
+    });
+  }
+
+  private waitForActionResponse(id: number, action: Action) {
+    return new Promise<ServerMessage["payload"]>((resolve, reject) => {
+      const handler = ({ data }: MessageEvent<ServerMessage>) => {
+        if (data.target !== SINGLE_SIGN_ON_TARGET || data.id !== id || data.action !== action) {
+          return;
+        }
+
+        window.removeEventListener("message", handler);
+
+        !data.ok ? reject(data.payload as string) : resolve(data.payload);
       };
 
       window.addEventListener("message", handler);
