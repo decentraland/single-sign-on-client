@@ -74,24 +74,6 @@ export class SingleSignOn {
         throw new Error("SSO Element was not created by this client");
       }
 
-      const promise = new Promise<void>((resolve, reject) => {
-        const handler = (event: MessageEvent<ServerMessage>) => {
-          if (event.data.target !== SINGLE_SIGN_ON_TARGET || event.data.action !== Action.INIT) {
-            return;
-          }
-
-          window.removeEventListener("message", handler);
-
-          if (!event.data.ok) {
-            reject(new Error(event.data.payload as string));
-          }
-
-          resolve();
-        };
-
-        window.addEventListener("message", handler);
-      });
-
       const iframe = document.createElement("iframe");
       iframe.id = IFRAME_ID;
       iframe.src = _src;
@@ -103,7 +85,7 @@ export class SingleSignOn {
       document.body.appendChild(iframe);
 
       await Promise.race([
-        promise,
+        this.waitForInitMessage(),
         new Promise((_resolve, reject) =>
           setTimeout(() => reject(new Error("Initialization timeout")), timeout ?? 2000)
         ),
@@ -136,7 +118,7 @@ export class SingleSignOn {
     return (await this.handle(Action.GET_IDENTITY, address)) as AuthIdentity | null;
   }
 
-  async handle(action: Action, payload?: ClientMessage["payload"]) {
+  private async handle(action: Action, payload?: ClientMessage["payload"]) {
     if (this.initState !== InitState.INITIALIZED) {
       throw new Error("SSO is not initialized");
     }
@@ -203,5 +185,25 @@ export class SingleSignOn {
     }
 
     return iframeWindow;
+  }
+
+  private waitForInitMessage(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const handler = (event: MessageEvent<ServerMessage>) => {
+        if (event.data.target !== SINGLE_SIGN_ON_TARGET || event.data.action !== Action.INIT) {
+          return;
+        }
+
+        window.removeEventListener("message", handler);
+
+        if (!event.data.ok) {
+          reject(new Error(event.data.payload as string));
+        }
+
+        resolve();
+      };
+
+      window.addEventListener("message", handler);
+    });
   }
 }
