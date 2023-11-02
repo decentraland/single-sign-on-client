@@ -432,6 +432,154 @@ describe("when getting the connection data", () => {
   });
 });
 
+describe("when setting identity", () => {
+  let address: string;
+  let identity: AuthIdentity;
+
+  beforeEach(() => {
+    address = "0x123";
+    identity = {
+      authChain: [],
+      ephemeralIdentity: { address, privateKey: "0x456", publicKey: "0x789" },
+      expiration: new Date(),
+    };
+  });
+
+  describe("when the client is not initialized", () => {
+    it("should throw an error saying that the client is not initialized", async () => {
+      await expect(sso.setIdentity(address, identity)).rejects.toThrow("SSO is not initialized");
+    });
+  });
+
+  describe("when the client is initialized locally", () => {
+    beforeEach(() => {
+      sso.init();
+    });
+
+    it("should call the local storage utils set identity function with the provided identity", () => {
+      const setIdentitySpy = jest.spyOn(LocalStorageUtils, "setIdentity");
+      setIdentitySpy.mockImplementation(() => {});
+
+      sso.setIdentity(address, null);
+      expect(setIdentitySpy).toHaveBeenCalledWith(address, null);
+
+      sso.setIdentity(address, identity);
+      expect(setIdentitySpy).toHaveBeenCalledWith(address, identity);
+    });
+  });
+
+  describe("when the client is initialized", () => {
+    const src = "https://someurl.com";
+
+    beforeEach(async () => {
+      mockGetElementById.mockReturnValueOnce(null);
+      mockCreateElement.mockReturnValueOnce({ style: {} });
+      jest.spyOn(sso as any, "waitForInitMessage").mockResolvedValueOnce(undefined);
+      await sso.init({ src, timeout: 0 });
+    });
+
+    describe("when the iframe element cannot be found", () => {
+      beforeEach(() => {
+        mockGetElementById.mockReturnValueOnce(null);
+      });
+
+      it("should throw an error saying that the element cannot be found", async () => {
+        await expect(sso.setIdentity(address, identity)).rejects.toThrow("Unable to obtain the SSO iframe element");
+      });
+    });
+
+    describe("when the element is not an iframe", () => {
+      beforeEach(() => {
+        mockGetElementById.mockReturnValueOnce({ tagName: "FOO" });
+      });
+
+      it("should throw an error saying that the element is not an iframe", async () => {
+        await expect(sso.setIdentity(address, identity)).rejects.toThrow("The SSO element is not an iframe");
+      });
+    });
+
+    describe("when the iframe src is different to the initialized one", () => {
+      beforeEach(() => {
+        mockGetElementById.mockReturnValueOnce({ tagName: "IFRAME", src: "https://someotherurl.com" });
+      });
+
+      it("should throw an error saying that the iframe src is different to the initialized one", async () => {
+        await expect(sso.setIdentity(address, identity)).rejects.toThrow("The SSO iframe src has been modified");
+      });
+    });
+
+    describe("when the iframe does not have a content window", () => {
+      beforeEach(() => {
+        mockGetElementById.mockReturnValueOnce({ tagName: "IFRAME", src, contentWindow: undefined });
+      });
+
+      it("should throw an error saying that the iframe window could not be obtained", async () => {
+        await expect(sso.setIdentity(address, identity)).rejects.toThrow("Unable to obtain the SSO iframe window");
+      });
+    });
+
+    describe("when validations pass", () => {
+      let mockPostMessage: jest.Mock;
+
+      beforeEach(() => {
+        mockPostMessage = jest.fn();
+
+        mockGetElementById.mockReturnValue({
+          tagName: "IFRAME",
+          src,
+          contentWindow: { postMessage: mockPostMessage },
+        });
+      });
+
+      describe("when the identity is null", () => {
+        beforeEach(() => {
+          spyWaitForActionResponse.mockResolvedValue(null);
+        });
+
+        it("should call the iframe window post message function with the set identity data client message with the payload as null", async () => {
+          await sso.setIdentity(address, null);
+
+          expect(mockPostMessage).toHaveBeenCalledWith(
+            {
+              action: Action.SET_IDENTITY,
+              id: 1,
+              payload: {
+                address,
+                identity: null,
+              },
+              target: SINGLE_SIGN_ON_TARGET,
+            },
+            src
+          );
+        });
+      });
+
+      describe("when the identity is not null", () => {
+        beforeEach(() => {
+          spyWaitForActionResponse.mockResolvedValue(undefined);
+        });
+
+        it("should call the iframe window post message function with the set connection data client message with the payload containing the identity", async () => {
+          await sso.setIdentity(address, identity);
+
+          expect(mockPostMessage).toHaveBeenCalledWith(
+            {
+              action: Action.SET_IDENTITY,
+              id: 1,
+              payload: {
+                address,
+                identity,
+              },
+              target: SINGLE_SIGN_ON_TARGET,
+            },
+            src
+          );
+        });
+      });
+    });
+  });
+});
+
 describe("when getting the identity", () => {
   let address: string;
   let identity: AuthIdentity;
