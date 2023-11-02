@@ -103,7 +103,7 @@ export class SingleSignOn {
   }
 
   async setConnectionData(data: ConnectionData | null): Promise<void> {
-    return (await this.handle(Action.SET_CONNECTION_DATA, data)) as void;
+    await this.handle(Action.SET_CONNECTION_DATA, data);
   }
 
   async getConnectionData(): Promise<ConnectionData | null> {
@@ -111,7 +111,7 @@ export class SingleSignOn {
   }
 
   async setIdentity(address: string, identity: AuthIdentity | null): Promise<void> {
-    return (await this.handle(Action.SET_IDENTITY, { address, identity })) as void;
+    await this.handle(Action.SET_IDENTITY, { address, identity });
   }
 
   async getIdentity(address: string): Promise<AuthIdentity | null> {
