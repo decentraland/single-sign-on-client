@@ -69,6 +69,8 @@ export namespace LocalStorageUtils {
   }
 
   export function setIdentity(address: string, identity: AuthIdentity | null): void {
+    Validations.validateAddress(address);
+
     const key = getIdentityKey(address);
 
     if (!identity) {
@@ -115,14 +117,16 @@ namespace Validations {
   const ajv = new Ajv();
   addFormats(ajv);
 
+  const addressSchema: JSONSchemaType<string> = {
+    type: "string",
+    pattern: "^0x[a-fA-F0-9]{40}$",
+  };
+
   const connectionDataSchema: JSONSchemaType<ConnectionData> = {
     type: "object",
     properties: {
       provider: ProviderType.schema,
-      address: {
-        type: "string",
-        pattern: "^0x[a-fA-F0-9]{40}$",
-      },
+      address: addressSchema,
     },
     required: ["address", "provider"],
     additionalProperties: false,
@@ -159,6 +163,7 @@ namespace Validations {
 
   const _validateConnectionData = ajv.compile(connectionDataSchema);
   const _validateAuthIdentity = ajv.compile(authIdentitySchema);
+  const _validateAddress = ajv.compile(addressSchema);
 
   export function validateConnectionData(connectionData: any) {
     if (!_validateConnectionData(connectionData)) {
@@ -169,6 +174,12 @@ namespace Validations {
   export function validateAuthIdentity(authIdentity: any) {
     if (!_validateAuthIdentity(authIdentity)) {
       throw new Error(`Invalid auth identity: ${JSON.stringify(_validateAuthIdentity.errors)}`);
+    }
+  }
+
+  export function validateAddress(address: any) {
+    if (!_validateAddress(address)) {
+      throw new Error(`Invalid address: ${JSON.stringify(_validateAddress.errors)}`);
     }
   }
 }

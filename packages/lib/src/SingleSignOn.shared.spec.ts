@@ -287,4 +287,16 @@ describe("when setting the identity on local storage", () => {
       );
     });
   });
+
+  describe("when providing an invalid address", () => {
+    beforeEach(() => {
+      identity = mockIdentity;
+    });
+
+    it("should fail with an invalid identity message", () => {
+      expect(() => LocalStorageUtils.setIdentity("invalid", identity)).toThrow(
+        'Invalid address: [{"instancePath":"","schemaPath":"#/pattern","keyword":"pattern","params":{"pattern":"^0x[a-fA-F0-9]{40}$"},"message":"must match pattern \\"^0x[a-fA-F0-9]{40}$\\""}]'
+      );
+    });
+  });
 });
