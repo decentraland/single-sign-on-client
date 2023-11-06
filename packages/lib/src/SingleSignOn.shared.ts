@@ -74,7 +74,7 @@ export namespace LocalStorageUtils {
     if (!identity) {
       localStorage.removeItem(key);
     } else {
-      Validations.validateAuthIdentity(identity);
+      Validations.validateAuthIdentity(JSON.parse(JSON.stringify(identity)));
 
       localStorage.setItem(key, JSON.stringify(identity));
     }

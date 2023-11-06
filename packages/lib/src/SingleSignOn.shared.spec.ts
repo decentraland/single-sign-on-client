@@ -219,3 +219,46 @@ describe("when getting the identity from local storage", () => {
     });
   });
 });
+
+describe("when setting the identity on local storage", () => {
+  let identity: AuthIdentity | null;
+
+  describe("when providing null as identity", () => {
+    beforeEach(() => {
+      identity = null;
+    });
+
+    it("should call the clear function from local storage", () => {
+      LocalStorageUtils.setIdentity(mockAddress, null);
+
+      expect(global.localStorage.removeItem).toBeCalledWith(`${LocalStorageUtils.IDENTITY_KEY}-${mockAddress}`);
+    });
+  });
+
+  describe("when providing an identity object", () => {
+    beforeEach(() => {
+      identity = mockIdentity;
+    });
+
+    it("should call the set function from local storage", () => {
+      LocalStorageUtils.setIdentity(mockAddress, identity);
+
+      expect(global.localStorage.setItem).toBeCalledWith(
+        `${LocalStorageUtils.IDENTITY_KEY}-${mockAddress}`,
+        JSON.stringify(identity)
+      );
+    });
+  });
+
+  describe("when providing an identity object that has an invalid schema", () => {
+    beforeEach(() => {
+      identity = {} as AuthIdentity;
+    });
+
+    it("should call the set function from local storage", () => {
+      expect(() => LocalStorageUtils.setIdentity(mockAddress, identity)).toThrow(
+        'Invalid auth identity: [{"instancePath":"","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"ephemeralIdentity"},"message":"must have required property \'ephemeralIdentity\'"}]'
+      );
+    });
+  });
+});
