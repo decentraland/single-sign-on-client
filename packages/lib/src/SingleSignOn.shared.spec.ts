@@ -25,10 +25,9 @@ beforeEach(() => {
 
   mockIdentity = {
     ephemeralIdentity: {
-      address: "0xF8C8E57A279c1ACAB4d4d7828365fef634FcA15e",
-      publicKey:
-        "0x0423553e669ddf2153b2a12147cba9f9a5d07a89ec161827779ce4567a81707cef1056097e92d80845cb1d712504b1daaaa17a8cb51f001d0ef0683e4e6b2930ec",
-      privateKey: "0xWhyDoYouCare?",
+      address: "address",
+      publicKey: "publickey",
+      privateKey: "privatekey",
     },
     expiration: (() => {
       const today = new Date();
@@ -179,6 +178,14 @@ describe("when setting the connection data on local storage", () => {
 
 describe("when getting the identity from local storage", () => {
   let identity: AuthIdentity | null;
+
+  describe("when the provided address is invalid", () => {
+    it("should throw an error saying that the address is invalid", () => {
+      expect(() => LocalStorageUtils.getIdentity("invalid")).toThrow(
+        'Invalid address: [{"instancePath":"","schemaPath":"#/pattern","keyword":"pattern","params":{"pattern":"^0x[a-fA-F0-9]{40}$"},"message":"must match pattern \\"^0x[a-fA-F0-9]{40}$\\""}]'
+      );
+    });
+  });
 
   describe("when the local storage returns null", () => {
     beforeEach(() => {

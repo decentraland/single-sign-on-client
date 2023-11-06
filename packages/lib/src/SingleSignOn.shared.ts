@@ -43,6 +43,8 @@ export namespace LocalStorageUtils {
   export const CONNECTION_DATA_KEY = "single-sign-on-v2-connection-data";
 
   export function getIdentity(address: string): AuthIdentity | null {
+    Validations.validateAddress(address);
+
     const identityStr = localStorage.getItem(getIdentityKey(address));
 
     if (!identityStr) {
