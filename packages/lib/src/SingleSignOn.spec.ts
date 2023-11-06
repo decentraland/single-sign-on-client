@@ -161,14 +161,16 @@ describe("when setting the connection data", () => {
   });
 
   describe("when the client is initialized locally", () => {
+    let setConnectionDataSpy: jest.SpyInstance;
+
     beforeEach(() => {
       sso.init();
+
+      setConnectionDataSpy = jest.spyOn(LocalStorageUtils, "setConnectionData");
+      setConnectionDataSpy.mockImplementation(() => {});
     });
 
     it("should call the local storage utils set connection data function with the provided connection data", () => {
-      const setConnectionDataSpy = jest.spyOn(LocalStorageUtils, "setConnectionData");
-      setConnectionDataSpy.mockImplementation(() => {});
-
       const connectionData: ConnectionData | null = null;
 
       sso.setConnectionData(connectionData);
@@ -300,19 +302,22 @@ describe("when getting the connection data", () => {
   });
 
   describe("when the client is initialized locally", () => {
+    let connectionData: ConnectionData;
+    let getConnectionDataSpy: jest.SpyInstance;
+
     beforeEach(() => {
       sso.init();
-    });
 
-    it("should call the local storage utils get connection data function and return its value", () => {
-      const connectionData: ConnectionData = {
+      connectionData = {
         address: "0x123",
         provider: ProviderType.INJECTED,
       };
 
-      const getConnectionDataSpy = jest.spyOn(LocalStorageUtils, "getConnectionData");
+      getConnectionDataSpy = jest.spyOn(LocalStorageUtils, "getConnectionData");
       getConnectionDataSpy.mockImplementation(() => connectionData);
+    });
 
+    it("should call the local storage utils get connection data function and return its value", () => {
       expect(sso.getConnectionData()).resolves.toEqual(connectionData);
     });
   });
@@ -452,14 +457,16 @@ describe("when setting identity", () => {
   });
 
   describe("when the client is initialized locally", () => {
+    let setIdentitySpy: jest.SpyInstance;
+
     beforeEach(() => {
       sso.init();
+
+      setIdentitySpy = jest.spyOn(LocalStorageUtils, "setIdentity");
+      setIdentitySpy.mockImplementation(() => {});
     });
 
     it("should call the local storage utils set identity function with the provided identity", () => {
-      const setIdentitySpy = jest.spyOn(LocalStorageUtils, "setIdentity");
-      setIdentitySpy.mockImplementation(() => {});
-
       sso.setIdentity(address, null);
       expect(setIdentitySpy).toHaveBeenCalledWith(address, null);
 
@@ -600,14 +607,16 @@ describe("when getting the identity", () => {
   });
 
   describe("when the client is initialized locally", () => {
+    let getIdentitySpy: jest.SpyInstance;
+
     beforeEach(() => {
       sso.init();
+
+      getIdentitySpy = jest.spyOn(LocalStorageUtils, "getIdentity");
+      getIdentitySpy.mockImplementation(() => identity);
     });
 
     it("should call the local storage utils get identity function and return its value", () => {
-      const getIdentitySpy = jest.spyOn(LocalStorageUtils, "getIdentity");
-      getIdentitySpy.mockImplementation(() => identity);
-
       expect(sso.getIdentity(address)).resolves.toEqual(identity);
     });
   });
