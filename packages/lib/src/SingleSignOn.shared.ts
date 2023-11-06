@@ -121,6 +121,7 @@ namespace Validations {
       provider: ProviderType.schema,
       address: {
         type: "string",
+        pattern: "^0x[a-fA-F0-9]{40}$",
       },
     },
     required: ["address", "provider"],

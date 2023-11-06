@@ -143,9 +143,35 @@ describe("when setting the connection data on local storage", () => {
       connectionData = {} as ConnectionData;
     });
 
-    it("should call the set function from local storage", () => {
+    it("should fail with an invalid connection data message", () => {
       expect(() => LocalStorageUtils.setConnectionData(connectionData)).toThrow(
         'Invalid connection data: [{"instancePath":"","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"address"},"message":"must have required property \'address\'"}]'
+      );
+    });
+  });
+
+  describe("when providing a connection data object that has an invalid address", () => {
+    beforeEach(() => {
+      connectionData = mockConnectionData;
+      connectionData.address = "invalid-address";
+    });
+
+    it("should fail with an invalid connection data message", () => {
+      expect(() => LocalStorageUtils.setConnectionData(connectionData)).toThrow(
+        'Invalid connection data: [{"instancePath":"/address","schemaPath":"#/properties/address/pattern","keyword":"pattern","params":{"pattern":"^0x[a-fA-F0-9]{40}$"},"message":"must match pattern \\"^0x[a-fA-F0-9]{40}$\\""}]'
+      );
+    });
+  });
+
+  describe("when providing a connection data object that has an invalid provider", () => {
+    beforeEach(() => {
+      connectionData = mockConnectionData;
+      connectionData.provider = "invalid" as any;
+    });
+
+    it("should fail with an invalid connection data message", () => {
+      expect(() => LocalStorageUtils.setConnectionData(connectionData)).toThrow(
+        'Invalid connection data: [{"instancePath":"/provider","schemaPath":"#/properties/provider/enum","keyword":"enum","params":{"allowedValues":["injected","magic","formatic","network","wallet_connect","wallet_connect_v2","wallet_link","metamask_mobile"]},"message":"must be equal to one of the allowed values"}]'
       );
     });
   });
@@ -255,7 +281,7 @@ describe("when setting the identity on local storage", () => {
       identity = {} as AuthIdentity;
     });
 
-    it("should call the set function from local storage", () => {
+    it("should fail with an invalid identity message", () => {
       expect(() => LocalStorageUtils.setIdentity(mockAddress, identity)).toThrow(
         'Invalid auth identity: [{"instancePath":"","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"ephemeralIdentity"},"message":"must have required property \'ephemeralIdentity\'"}]'
       );
