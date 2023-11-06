@@ -141,9 +141,11 @@ export class SingleSignOn {
       const iframeWindow = this.getIframeWindow();
       const id = this.idCounter++;
 
+      const promise = this.waitForActionResponse(id, action);
+
       iframeWindow.postMessage({ target: SINGLE_SIGN_ON_TARGET, id, action, payload } as ClientMessage, this.src!);
 
-      return this.waitForActionResponse(id, action);
+      return promise;
     }
   }
 
