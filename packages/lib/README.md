@@ -24,7 +24,7 @@ await sso.init({
 })
 ```
 
-The `src` argument determines the src of the SSO iframe to be created. If no src is provided. SSO will work using the applications localstorage instead of communicating with the iframe. Given that the iframe has some limitations to which origins can interact with it (https://id.decentraland.org can only receive messages from https://\*.decentraland.org sites), for local development you should not provide a src.
+The `src` argument determines the src of the SSO iframe to be created. If no src is provided, SSO will work using the applications localstorage instead of communicating with the iframe. Given that the iframe has some limitations to which origins can interact with it (https://id.decentraland.org can only receive messages from https://\*.decentraland.org sites), for local development you should not provide a src.
 
 3. Use the corresponding SSO functions to fetch and store data.
 
