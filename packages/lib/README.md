@@ -12,38 +12,49 @@ https://github.com/decentraland/single-sign-on <- Single Sign On webapp repo.
 npm install @dcl/single-sign-on-client
 ```
 
-2. Initialize the client as soon as the application starts or as soon as possible. It is important that initialization happens before it is used.
+2. Initialize the client
 
 ```ts
-import * as SingleSignOn from "@dcl/single-sign-on-client";
+import { SingleSignOn } from "@dcl/single-sign-on-client";
 
-const iframeSrc = "https://id.decentraland.org";
+const sso = SingleSignOn.getInstance();
 
-SingleSignOn.init(iframeSrc);
+await sso.init({
+  src: 'https://id.decentraland.org';
+})
 ```
 
-3. Use the corresponding functions to get, store and clear the identity of the user into the iframe.
+The `src` argument determines the src of the SSO iframe to be created. If no src is provided. SSO will work using the applications localstorage instead of communicating with the iframe. Given that the iframe has some limitations to which origins can interact with it (https://id.decentraland.org can only receive messages from https://\*.decentraland.org sites), for local development you should not provide a src.
+
+3. Use the corresponding SSO functions to fetch and store data.
 
 ```ts
-import * as SingleSignOn from "@dcl/single-sign-on-client";
+import { SingleSignOn } from "@dcl/single-sign-on-client";
 
-const address: string = "0x..."
+const sso = SingleSignOn.getInstance();
 
-const identity: AuthIdentity = await Authenticator.initializeAuthChain(address, ...)
+await sso.getConnectionData();
 
-await SingleSignOn.storeIdentity(address, identity)
+await sso.setConnectionData(data);
 
-const storedIdentity: AuthIdentity = await SingleSignOn.getIdentity(address)
+await sso.getIdentity(address);
 
-await SingleSignOn.clearIdentity(address)
+await sso.setIdentity(address, identity);
 ```
 
-## Fallback
+To clear the data, you just have to call the `set` function with `null`
 
-There are cases in which the iframe cannot be used to store the user's identity.
+## Stored Data
 
-Cases like when the origin from were the client is being used is not an allowed origin, the single sign on webapp is not responding or simply because the client was not initialized.
+**Connection Data**
 
-Any time that the identity cannot be stored or obtained from the iframe, the current applications local storage will be used instead. This fallback mechanism will allow users to still access the application but without having their identities stored in the iframe, with all this implies (Not being able to reuse the identity on different applications)
+Contains relevant information about the user's connection. Mainly the user's `address` and the `provider` (wallet type) used to connect.
 
-This fallback strategy is intended for decentraland forks and local environments. Allowing us not to block anyone that uses this client which has not been allowed to use the identity iframe.
+It can be used to automatically attempt to reconnect the user with the same provider used on another application. As well as showing the user in a "semi" connected state by using it's address to fetch data without the need of connecting their wallet.
+
+
+**Auth Identity**
+
+The identity of the user. Mainly used to sign requests for authenticated endpoints. 
+
+With the identity available, user's only need to sign it once on a single dapp and have it available on the rest of them.
