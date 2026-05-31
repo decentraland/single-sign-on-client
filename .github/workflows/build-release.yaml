@@ -19,7 +19,7 @@ jobs:
       - name: Use Node.js 18.x
         uses: actions/setup-node@v3
         with:
-          node-version: 18.x
+          node-version: 24
       - name: Delete root package.json
         # In order to publish the lib package, we need to delete the root package.json.
         # Otherwise, oddish will pick that one up and try to publish it.
